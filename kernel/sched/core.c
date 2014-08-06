@@ -10,6 +10,7 @@
 #include <linux/nospec.h>
 
 #include <linux/kcov.h>
+#include <linux/ktsan.h>
 
 #include <asm/switch_to.h>
 #include <asm/tlb.h>
@@ -3470,6 +3471,10 @@ static void __sched notrace __schedule(bool preempt)
 
 		/* Also unlocks the rq: */
 		rq = context_switch(rq, prev, next, &rf);
+
+		cpu = cpu_of(rq);
+		ktsan_thr_stop(&prev->ktsan, cpu);
+		ktsan_thr_start(&next->ktsan, cpu);
 	} else {
 		rq->clock_update_flags &= ~(RQCF_ACT_SKIP|RQCF_REQ_SKIP);
 		rq_unlock_irq(rq, &rf);

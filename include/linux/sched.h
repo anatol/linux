@@ -29,6 +29,7 @@
 #include <linux/mm_types_task.h>
 #include <linux/task_io_accounting.h>
 #include <linux/rseq.h>
+#include <linux/ktsan.h>
 
 /* task_struct member predeclarations (sorted alphabetically): */
 struct audit_context;
@@ -1212,6 +1213,8 @@ struct task_struct {
 	 */
 	randomized_struct_fields_end
 
+	/* ThreadSanitizer state. Empty in non-tsan build. */
+	ktsan_thr_t ktsan;
 	/* CPU-specific state of this task: */
 	struct thread_struct		thread;
 

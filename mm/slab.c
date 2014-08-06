@@ -117,6 +117,7 @@
 #include	<linux/memory.h>
 #include	<linux/prefetch.h>
 #include	<linux/sched/task_stack.h>
+#include	<linux/ktsan.h>
 
 #include	<net/sock.h>
 
@@ -1428,6 +1429,8 @@ static struct page *kmem_getpages(struct kmem_cache *cachep, gfp_t flags,
 	if (sk_memalloc_socks() && page_is_pfmemalloc(page))
 		SetPageSlabPfmemalloc(page);
 
+	ktsan_alloc_page(page, cachep->gfporder, cachep->flags, nodeid);
+
 	return page;
 }
 
@@ -1438,6 +1441,8 @@ static void kmem_freepages(struct kmem_cache *cachep, struct page *page)
 {
 	int order = cachep->gfporder;
 	unsigned long nr_freed = (1 << order);
+
+	ktsan_free_page(page, cachep->gfporder);
 
 	if (cachep->flags & SLAB_RECLAIM_ACCOUNT)
 		mod_lruvec_page_state(page, NR_SLAB_RECLAIMABLE, -nr_freed);

@@ -20,6 +20,7 @@
 #include <linux/freezer.h>
 #include <linux/ptrace.h>
 #include <linux/uaccess.h>
+#include <linux/ktsan.h>
 #include <trace/events/sched.h>
 
 static DEFINE_SPINLOCK(kthread_create_lock);
@@ -341,6 +342,7 @@ struct task_struct *__kthread_create_on_node(int (*threadfn)(void *data),
 		set_cpus_allowed_ptr(task, cpu_all_mask);
 	}
 	kfree(create);
+	ktsan_thr_create(&task->ktsan, &current->ktsan);
 	return task;
 }
 
