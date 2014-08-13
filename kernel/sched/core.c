@@ -3469,12 +3469,10 @@ static void __sched notrace __schedule(bool preempt)
 
 		trace_sched_switch(preempt, prev, next);
 
+		ktsan_thr_stop();
 		/* Also unlocks the rq: */
 		rq = context_switch(rq, prev, next, &rf);
-
-		cpu = cpu_of(rq);
-		ktsan_thr_stop(&prev->ktsan, cpu);
-		ktsan_thr_start(&next->ktsan, cpu);
+		ktsan_thr_start();
 	} else {
 		rq->clock_update_flags &= ~(RQCF_ACT_SKIP|RQCF_REQ_SKIP);
 		rq_unlock_irq(rq, &rf);
