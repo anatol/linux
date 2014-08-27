@@ -590,6 +590,7 @@ asmlinkage __visible void __init start_kernel(void)
 	 * These use large bootmem allocations and must precede
 	 * kmem_cache_init()
 	 */
+	ktsan_init_early();
 	setup_log_buf(0);
 	vfs_caches_init_early();
 	sort_main_extable();
