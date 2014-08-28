@@ -3489,9 +3489,6 @@ static void __sched notrace __schedule(bool preempt)
 	}
 
 	balance_callback(rq);
-
-	if (current != rq->idle)
-		ktsan_thr_start();
 }
 
 void __noreturn do_task_dead(void)
