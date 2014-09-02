@@ -28,6 +28,7 @@
 #include <linux/interrupt.h>
 #include <linux/debug_locks.h>
 #include <linux/osq_lock.h>
+#include <linux/ktsan.h>
 
 #ifdef CONFIG_DEBUG_MUTEXES
 # include "mutex-debug.h"
@@ -251,10 +252,13 @@ static void __sched __mutex_lock_slowpath(struct mutex *lock);
  */
 void __sched mutex_lock(struct mutex *lock)
 {
+	ktsan_mtx_pre_lock(lock, true, false);
 	might_sleep();
 
 	if (!__mutex_trylock_fast(lock))
 		__mutex_lock_slowpath(lock);
+
+	ktsan_mtx_post_lock(lock, true, false);
 }
 EXPORT_SYMBOL(mutex_lock);
 #endif
@@ -706,6 +710,7 @@ static noinline void __sched __mutex_unlock_slowpath(struct mutex *lock, unsigne
  */
 void __sched mutex_unlock(struct mutex *lock)
 {
+	ktsan_mtx_pre_unlock(lock, true);
 #ifndef CONFIG_DEBUG_LOCK_ALLOC
 	if (__mutex_unlock_fast(lock))
 		return;
