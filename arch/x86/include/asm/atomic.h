@@ -4,6 +4,7 @@
 
 #include <linux/compiler.h>
 #include <linux/types.h>
+#include <linux/ktsan.h>
 #include <asm/alternative.h>
 #include <asm/cmpxchg.h>
 #include <asm/rmwcc.h>
@@ -24,11 +25,15 @@
  */
 static __always_inline int arch_atomic_read(const atomic_t *v)
 {
+#ifdef CONFIG_KTSAN
+	return ktsan_atomic32_read(v);
+#else
 	/*
 	 * Note for KASAN: we deliberately don't use READ_ONCE_NOCHECK() here,
 	 * it's non-inlined function that increases binary size and stack usage.
 	 */
 	return READ_ONCE((v)->counter);
+#endif
 }
 
 /**
@@ -40,7 +45,11 @@ static __always_inline int arch_atomic_read(const atomic_t *v)
  */
 static __always_inline void arch_atomic_set(atomic_t *v, int i)
 {
+#ifdef CONFIG_KTSAN
+	ktsan_atomic32_set(v, i);
+#else
 	WRITE_ONCE(v->counter, i);
+#endif
 }
 
 /**
