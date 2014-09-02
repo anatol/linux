@@ -3334,7 +3334,7 @@ slab_alloc_node(struct kmem_cache *cachep, gfp_t flags, int nodeid,
 	local_irq_restore(save_flags);
 	ptr = cache_alloc_debugcheck_after(cachep, flags, ptr, caller);
 
-	ktsan_slab_alloc(cachep, ptr);
+	ktsan_memblock_alloc(cachep, ptr);
 	if (unlikely(flags & __GFP_ZERO) && ptr)
 		memset(ptr, 0, cachep->object_size);
 
@@ -3392,7 +3392,7 @@ slab_alloc(struct kmem_cache *cachep, gfp_t flags, unsigned long caller)
 	objp = cache_alloc_debugcheck_after(cachep, flags, objp, caller);
 	prefetchw(objp);
 
-	ktsan_slab_alloc(cachep, objp);
+	ktsan_memblock_alloc(cachep, objp);
 	if (unlikely(flags & __GFP_ZERO) && objp)
 		memset(objp, 0, cachep->object_size);
 
@@ -3517,7 +3517,7 @@ void ___cache_free(struct kmem_cache *cachep, void *objp,
 	kmemleak_free_recursive(objp, cachep->flags);
 	objp = cache_free_debugcheck(cachep, objp, caller);
 
-	ktsan_slab_free(cachep, objp);
+	ktsan_memblock_free(cachep, objp);
 
 	/*
 	 * Skip calling cache_free_alien() when the platform is not numa.
