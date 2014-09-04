@@ -3334,7 +3334,7 @@ slab_alloc_node(struct kmem_cache *cachep, gfp_t flags, int nodeid,
 	local_irq_restore(save_flags);
 	ptr = cache_alloc_debugcheck_after(cachep, flags, ptr, caller);
 
-	ktsan_memblock_alloc(cachep, ptr);
+	ktsan_memblock_alloc(ptr, cachep->object_size);
 	if (unlikely(flags & __GFP_ZERO) && ptr)
 		memset(ptr, 0, cachep->object_size);
 
@@ -3392,7 +3392,7 @@ slab_alloc(struct kmem_cache *cachep, gfp_t flags, unsigned long caller)
 	objp = cache_alloc_debugcheck_after(cachep, flags, objp, caller);
 	prefetchw(objp);
 
-	ktsan_memblock_alloc(cachep, objp);
+	ktsan_memblock_alloc(objp, cachep->object_size);
 	if (unlikely(flags & __GFP_ZERO) && objp)
 		memset(objp, 0, cachep->object_size);
 
