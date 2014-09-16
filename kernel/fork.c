@@ -2176,6 +2176,7 @@ struct task_struct *fork_idle(int cpu)
 	task = copy_process(CLONE_VM, 0, 0, NULL, &init_struct_pid, 0, 0,
 			    cpu_to_node(cpu));
 	if (!IS_ERR(task)) {
+		ktsan_thr_create(&task->ktsan, task->pid);
 		init_idle_pids(task);
 		init_idle(task, cpu);
 	}
@@ -2227,6 +2228,8 @@ long _do_fork(unsigned long clone_flags,
 	if (IS_ERR(p))
 		return PTR_ERR(p);
 
+	ktsan_thr_create(&p->ktsan, p->pid);
+
 	/*
 	 * Do this prior waking up the new thread - the thread pointer
 	 * might get invalid after that point, if the thread exits quickly.
@@ -2244,8 +2247,6 @@ long _do_fork(unsigned long clone_flags,
 		init_completion(&vfork);
 		get_task_struct(p);
 	}
-
-	ktsan_thr_create(&p->ktsan, p->pid);
 
 	wake_up_new_task(p);
 
