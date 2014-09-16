@@ -1769,7 +1769,9 @@ static __latent_entropy struct task_struct *copy_process(
 	 */
 	p->clear_child_tid = (clone_flags & CLONE_CHILD_CLEARTID) ? child_tidptr : NULL;
 
+#ifdef CONFIG_KTSAN
 	p->ktsan.thr = NULL;
+#endif
 
 	ftrace_graph_init_task(p);
 
