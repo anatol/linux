@@ -8,6 +8,7 @@ extra-y	+= head$(BITS).o
 extra-y	+= ebda.o
 extra-y	+= platform-quirks.o
 extra-y	+= vmlinux.lds
+KTSAN_SANITIZE_nmi.o = n
 
 CPPFLAGS_vmlinux.lds += -U$(UTS_MACHINE)
 
