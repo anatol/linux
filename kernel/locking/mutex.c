@@ -1383,10 +1383,15 @@ __ww_mutex_lock_interruptible_slowpath(struct ww_mutex *lock,
  */
 int __sched mutex_trylock(struct mutex *lock)
 {
-	bool locked = __mutex_trylock(lock);
+	bool locked;
 
+	ktsan_mtx_pre_lock(lock, true, true);
+
+	locked = __mutex_trylock(lock);
 	if (locked)
 		mutex_acquire(&lock->dep_map, 0, 1, _RET_IP_);
+
+	ktsan_mtx_post_lock(lock, true, true);
 
 	return locked;
 }
