@@ -1658,6 +1658,7 @@ static void ttwu_do_wakeup(struct rq *rq, struct task_struct *p, int wake_flags,
 	check_preempt_curr(rq, p, wake_flags);
 	p->state = TASK_RUNNING;
 	trace_sched_wakeup(p);
+	ktsan_thr_wakeup(&p->ktsan);
 
 #ifdef CONFIG_SMP
 	if (p->sched_class->task_woken) {
@@ -2768,9 +2769,6 @@ asmlinkage __visible void schedule_tail(struct task_struct *prev)
 {
 	struct rq *rq;
 
-	/* Has to be before finish_task_switch. */
-	ktsan_thr_start();
-
 	/*
 	 * New tasks start with FORK_PREEMPT_COUNT, see there and
 	 * finish_task_switch() for details.
@@ -2788,6 +2786,8 @@ asmlinkage __visible void schedule_tail(struct task_struct *prev)
 		put_user(task_pid_vnr(current), current->set_child_tid);
 
 	calculate_sigpending();
+
+	ktsan_thr_start();
 }
 
 /*
@@ -2798,9 +2798,6 @@ context_switch(struct rq *rq, struct task_struct *prev,
 	       struct task_struct *next, struct rq_flags *rf)
 {
 	struct mm_struct *mm, *oldmm;
-
-	ktsan_thr_stop();
-
 	prepare_task_switch(rq, prev, next);
 
 	mm = next->mm;
@@ -2838,9 +2835,6 @@ context_switch(struct rq *rq, struct task_struct *prev,
 	/* Here we just switch the register state and the stack. */
 	switch_to(prev, next, prev);
 	barrier();
-
-	/* Has to be before finish_task_switch. */
-	ktsan_thr_start();
 
 	return finish_task_switch(prev);
 }
@@ -3398,6 +3392,7 @@ static void __sched notrace __schedule(bool preempt)
 	struct rq *rq;
 	int cpu;
 
+	ktsan_thr_stop();
 	cpu = smp_processor_id();
 	rq = cpu_rq(cpu);
 	prev = rq->curr;
@@ -3489,6 +3484,7 @@ static void __sched notrace __schedule(bool preempt)
 	}
 
 	balance_callback(rq);
+	ktsan_thr_start();
 }
 
 void __noreturn do_task_dead(void)
