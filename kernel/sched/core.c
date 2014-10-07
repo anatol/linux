@@ -1658,7 +1658,6 @@ static void ttwu_do_wakeup(struct rq *rq, struct task_struct *p, int wake_flags,
 	check_preempt_curr(rq, p, wake_flags);
 	p->state = TASK_RUNNING;
 	trace_sched_wakeup(p);
-	ktsan_thr_wakeup(&p->ktsan);
 
 #ifdef CONFIG_SMP
 	if (p->sched_class->task_woken) {
