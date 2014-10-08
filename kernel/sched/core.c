@@ -2772,6 +2772,8 @@ asmlinkage __visible void schedule_tail(struct task_struct *prev)
 {
 	struct rq *rq;
 
+	ktsan_thr_start();
+
 	/*
 	 * New tasks start with FORK_PREEMPT_COUNT, see there and
 	 * finish_task_switch() for details.
@@ -2782,6 +2784,10 @@ asmlinkage __visible void schedule_tail(struct task_struct *prev)
 	 */
 
 	rq = finish_task_switch(prev);
+
+	/* Restore thr->cpu in case it was zeroed in finish_tabk_switch. */
+	ktsan_thr_start();
+
 	balance_callback(rq);
 	preempt_enable();
 
@@ -2789,8 +2795,6 @@ asmlinkage __visible void schedule_tail(struct task_struct *prev)
 		put_user(task_pid_vnr(current), current->set_child_tid);
 
 	calculate_sigpending();
-
-	ktsan_thr_start();
 }
 
 /*
