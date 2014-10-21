@@ -16,6 +16,8 @@
 #ifndef _LINUX_PERCPU_DEFS_H
 #define _LINUX_PERCPU_DEFS_H
 
+#include <linux/ktsan.h>
+
 #ifdef CONFIG_SMP
 
 #ifdef MODULE
@@ -238,6 +240,7 @@ do {									\
 
 #define raw_cpu_ptr(ptr)						\
 ({									\
+	ktsan_percpu_acquire(ptr);					\
 	__verify_pcpu_ptr(ptr);						\
 	arch_raw_cpu_ptr(ptr);						\
 })
@@ -245,6 +248,7 @@ do {									\
 #ifdef CONFIG_DEBUG_PREEMPT
 #define this_cpu_ptr(ptr)						\
 ({									\
+	ktsan_percpu_acquire(ptr);					\
 	__verify_pcpu_ptr(ptr);						\
 	SHIFT_PERCPU_PTR(ptr, my_cpu_offset);				\
 })
