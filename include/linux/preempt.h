@@ -9,7 +9,6 @@
 
 #include <linux/linkage.h>
 #include <linux/list.h>
-#include <linux/ktsan.h>
 
 /*
  * We put the hardirq and softirq counter into the preemption
@@ -172,7 +171,6 @@ extern void preempt_count_sub(int val);
 
 #define preempt_disable() \
 do { \
-	ktsan_preempt_disable(); \
 	preempt_count_inc(); \
 	barrier(); \
 } while (0)
@@ -181,7 +179,6 @@ do { \
 do { \
 	barrier(); \
 	preempt_count_dec(); \
-	ktsan_preempt_enable(); \
 } while (0)
 
 #define preempt_enable_no_resched() sched_preempt_enable_no_resched()
@@ -194,7 +191,6 @@ do { \
 	barrier(); \
 	if (unlikely(preempt_count_dec_and_test())) \
 		__preempt_schedule(); \
-	ktsan_preempt_enable(); \
 } while (0)
 
 #define preempt_enable_notrace() \
@@ -202,7 +198,6 @@ do { \
 	barrier(); \
 	if (unlikely(__preempt_count_dec_and_test())) \
 		__preempt_schedule_notrace(); \
-	ktsan_preempt_enable(); \
 } while (0)
 
 #define preempt_check_resched() \
@@ -216,14 +211,12 @@ do { \
 do { \
 	barrier(); \
 	preempt_count_dec(); \
-	ktsan_preempt_enable(); \
 } while (0)
 
 #define preempt_enable_notrace() \
 do { \
 	barrier(); \
 	__preempt_count_dec(); \
-	ktsan_preempt_enable(); \
 } while (0)
 
 #define preempt_check_resched() do { } while (0)
@@ -231,7 +224,6 @@ do { \
 
 #define preempt_disable_notrace() \
 do { \
-	ktsan_preempt_disable(); \
 	__preempt_count_inc(); \
 	barrier(); \
 } while (0)
@@ -240,7 +232,6 @@ do { \
 do { \
 	barrier(); \
 	__preempt_count_dec(); \
-	ktsan_preempt_enable(); \
 } while (0)
 
 #else /* !CONFIG_PREEMPT_COUNT */
