@@ -25,14 +25,14 @@
  */
 static __always_inline int arch_atomic_read(const atomic_t *v)
 {
-#ifdef CONFIG_KTSAN
-	return ktsan_atomic32_read(v);
-#else
+#ifndef CONFIG_KTSAN
 	/*
 	 * Note for KASAN: we deliberately don't use READ_ONCE_NOCHECK() here,
 	 * it's non-inlined function that increases binary size and stack usage.
 	 */
 	return READ_ONCE((v)->counter);
+#else
+	return ktsan_atomic32_read(v);
 #endif
 }
 
@@ -45,10 +45,10 @@ static __always_inline int arch_atomic_read(const atomic_t *v)
  */
 static __always_inline void arch_atomic_set(atomic_t *v, int i)
 {
-#ifdef CONFIG_KTSAN
-	ktsan_atomic32_set(v, i);
-#else
+#ifndef CONFIG_KTSAN
 	WRITE_ONCE(v->counter, i);
+#else
+	ktsan_atomic32_set(v, i);
 #endif
 }
 
@@ -61,12 +61,12 @@ static __always_inline void arch_atomic_set(atomic_t *v, int i)
  */
 static __always_inline void arch_atomic_add(int i, atomic_t *v)
 {
-#ifdef CONFIG_KTSAN
-	ktsan_atomic32_add(v, i);
-#else
+#ifndef CONFIG_KTSAN
 	asm volatile(LOCK_PREFIX "addl %1,%0"
 		     : "+m" (v->counter)
 		     : "ir" (i));
+#else
+	ktsan_atomic32_add(v, i);
 #endif
 }
 
@@ -79,12 +79,12 @@ static __always_inline void arch_atomic_add(int i, atomic_t *v)
  */
 static __always_inline void arch_atomic_sub(int i, atomic_t *v)
 {
-#ifdef CONFIG_KTSAN
-	ktsan_atomic32_sub(v, i);
-#else
+#ifndef CONFIG_KTSAN
 	asm volatile(LOCK_PREFIX "subl %1,%0"
 		     : "+m" (v->counter)
 		     : "ir" (i));
+#else
+	ktsan_atomic32_sub(v, i);
 #endif
 }
 
@@ -99,10 +99,10 @@ static __always_inline void arch_atomic_sub(int i, atomic_t *v)
  */
 static __always_inline bool arch_atomic_sub_and_test(int i, atomic_t *v)
 {
-#ifdef CONFIG_KTSAN
-	return ktsan_atomic32_sub_and_test(v, i);
-#else
+#ifndef CONFIG_KTSAN
 	return GEN_BINARY_RMWcc(LOCK_PREFIX "subl", v->counter, e, "er", i);
+#else
+	return ktsan_atomic32_sub_and_test(v, i);
 #endif
 }
 #define arch_atomic_sub_and_test arch_atomic_sub_and_test
@@ -115,11 +115,11 @@ static __always_inline bool arch_atomic_sub_and_test(int i, atomic_t *v)
  */
 static __always_inline void arch_atomic_inc(atomic_t *v)
 {
-#ifdef CONFIG_KTSAN
-	ktsan_atomic32_inc(v);
-#else
+#ifndef CONFIG_KTSAN
 	asm volatile(LOCK_PREFIX "incl %0"
 		     : "+m" (v->counter));
+#else
+	ktsan_atomic32_inc(v);
 #endif
 }
 #define arch_atomic_inc arch_atomic_inc
@@ -132,11 +132,11 @@ static __always_inline void arch_atomic_inc(atomic_t *v)
  */
 static __always_inline void arch_atomic_dec(atomic_t *v)
 {
-#ifdef CONFIG_KTSAN
-	ktsan_atomic32_dec(v);
-#else
+#ifndef CONFIG_KTSAN
 	asm volatile(LOCK_PREFIX "decl %0"
 		     : "+m" (v->counter));
+#else
+	ktsan_atomic32_dec(v);
 #endif
 }
 #define arch_atomic_dec arch_atomic_dec
@@ -151,10 +151,10 @@ static __always_inline void arch_atomic_dec(atomic_t *v)
  */
 static __always_inline bool arch_atomic_dec_and_test(atomic_t *v)
 {
-#ifdef CONFIG_KTSAN
-	return ktsan_atomic32_dec_and_test(v);
-#else
+#ifndef CONFIG_KTSAN
 	return GEN_UNARY_RMWcc(LOCK_PREFIX "decl", v->counter, e);
+#else
+	return ktsan_atomic32_dec_and_test(v);
 #endif
 }
 #define arch_atomic_dec_and_test arch_atomic_dec_and_test
@@ -169,10 +169,10 @@ static __always_inline bool arch_atomic_dec_and_test(atomic_t *v)
  */
 static __always_inline bool arch_atomic_inc_and_test(atomic_t *v)
 {
-#ifdef CONFIG_KTSAN
-	return ktsan_atomic32_inc_and_test(v);
-#else
+#ifndef CONFIG_KTSAN
 	return GEN_UNARY_RMWcc(LOCK_PREFIX "incl", v->counter, e);
+#else
+	return ktsan_atomic32_inc_and_test(v);
 #endif
 }
 #define arch_atomic_inc_and_test arch_atomic_inc_and_test
@@ -188,10 +188,10 @@ static __always_inline bool arch_atomic_inc_and_test(atomic_t *v)
  */
 static __always_inline bool arch_atomic_add_negative(int i, atomic_t *v)
 {
-#ifdef CONFIG_KTSAN
-	return ktsan_atomic32_add_negative(v, i);
-#else
+#ifndef CONFIG_KTSAN
 	return GEN_BINARY_RMWcc(LOCK_PREFIX "addl", v->counter, s, "er", i);
+#else
+	return ktsan_atomic32_add_negative(v, i);
 #endif
 }
 #define arch_atomic_add_negative arch_atomic_add_negative

@@ -3,6 +3,7 @@
 #define _ASM_X86_ATOMIC64_64_H
 
 #include <linux/types.h>
+#include <linux/ktsan.h>
 #include <asm/alternative.h>
 #include <asm/cmpxchg.h>
 
@@ -19,7 +20,11 @@
  */
 static inline long arch_atomic64_read(const atomic64_t *v)
 {
+#ifndef CONFIG_KTSAN
 	return READ_ONCE((v)->counter);
+#else
+	return ktsan_atomic64_read(v);
+#endif
 }
 
 /**
@@ -31,7 +36,11 @@ static inline long arch_atomic64_read(const atomic64_t *v)
  */
 static inline void arch_atomic64_set(atomic64_t *v, long i)
 {
+#ifndef CONFIG_KTSAN
 	WRITE_ONCE(v->counter, i);
+#else
+	ktsan_atomic64_set(v, i);
+#endif
 }
 
 /**
@@ -43,9 +52,13 @@ static inline void arch_atomic64_set(atomic64_t *v, long i)
  */
 static __always_inline void arch_atomic64_add(long i, atomic64_t *v)
 {
+#ifndef CONFIG_KTSAN
 	asm volatile(LOCK_PREFIX "addq %1,%0"
 		     : "=m" (v->counter)
 		     : "er" (i), "m" (v->counter));
+#else
+	ktsan_atomic64_add(v, i);
+#endif
 }
 
 /**
@@ -57,9 +70,13 @@ static __always_inline void arch_atomic64_add(long i, atomic64_t *v)
  */
 static inline void arch_atomic64_sub(long i, atomic64_t *v)
 {
+#ifndef CONFIG_KTSAN
 	asm volatile(LOCK_PREFIX "subq %1,%0"
 		     : "=m" (v->counter)
 		     : "er" (i), "m" (v->counter));
+#else
+	ktsan_atomic64_sub(v, i);
+#endif
 }
 
 /**
@@ -73,7 +90,11 @@ static inline void arch_atomic64_sub(long i, atomic64_t *v)
  */
 static inline bool arch_atomic64_sub_and_test(long i, atomic64_t *v)
 {
+#ifndef CONFIG_KTSAN
 	return GEN_BINARY_RMWcc(LOCK_PREFIX "subq", v->counter, e, "er", i);
+#else
+	return ktsan_atomic64_sub_and_test(v, i);
+#endif
 }
 #define arch_atomic64_sub_and_test arch_atomic64_sub_and_test
 
@@ -85,9 +106,13 @@ static inline bool arch_atomic64_sub_and_test(long i, atomic64_t *v)
  */
 static __always_inline void arch_atomic64_inc(atomic64_t *v)
 {
+#ifndef CONFIG_KTSAN
 	asm volatile(LOCK_PREFIX "incq %0"
 		     : "=m" (v->counter)
 		     : "m" (v->counter));
+#else
+	ktsan_atomic64_inc(v);
+#endif
 }
 #define arch_atomic64_inc arch_atomic64_inc
 
@@ -99,9 +124,13 @@ static __always_inline void arch_atomic64_inc(atomic64_t *v)
  */
 static __always_inline void arch_atomic64_dec(atomic64_t *v)
 {
+#ifndef CONFIG_KTSAN
 	asm volatile(LOCK_PREFIX "decq %0"
 		     : "=m" (v->counter)
 		     : "m" (v->counter));
+#else
+	ktsan_atomic64_dec(v);
+#endif
 }
 #define arch_atomic64_dec arch_atomic64_dec
 
@@ -115,7 +144,11 @@ static __always_inline void arch_atomic64_dec(atomic64_t *v)
  */
 static inline bool arch_atomic64_dec_and_test(atomic64_t *v)
 {
+#ifndef CONFIG_KTSAN
 	return GEN_UNARY_RMWcc(LOCK_PREFIX "decq", v->counter, e);
+#else
+	return ktsan_atomic64_dec_and_test(v);
+#endif
 }
 #define arch_atomic64_dec_and_test arch_atomic64_dec_and_test
 
@@ -129,7 +162,11 @@ static inline bool arch_atomic64_dec_and_test(atomic64_t *v)
  */
 static inline bool arch_atomic64_inc_and_test(atomic64_t *v)
 {
+#ifndef CONFIG_KTSAN
 	return GEN_UNARY_RMWcc(LOCK_PREFIX "incq", v->counter, e);
+#else
+	return ktsan_atomic64_inc_and_test(v);
+#endif
 }
 #define arch_atomic64_inc_and_test arch_atomic64_inc_and_test
 
@@ -144,7 +181,11 @@ static inline bool arch_atomic64_inc_and_test(atomic64_t *v)
  */
 static inline bool arch_atomic64_add_negative(long i, atomic64_t *v)
 {
+#ifndef CONFIG_KTSAN
 	return GEN_BINARY_RMWcc(LOCK_PREFIX "addq", v->counter, s, "er", i);
+#else
+	return ktsan_atomic64_add_negative(v, i);
+#endif
 }
 #define arch_atomic64_add_negative arch_atomic64_add_negative
 
@@ -157,6 +198,7 @@ static inline bool arch_atomic64_add_negative(long i, atomic64_t *v)
  */
 static __always_inline long arch_atomic64_add_return(long i, atomic64_t *v)
 {
+	/* ktsan: xadd intercepted in cmpxchg.h */
 	return i + xadd(&v->counter, i);
 }
 
@@ -172,11 +214,13 @@ static inline long arch_atomic64_fetch_add(long i, atomic64_t *v)
 
 static inline long arch_atomic64_fetch_sub(long i, atomic64_t *v)
 {
+	/* ktsan: xadd intercepted in cmpxchg.h */
 	return xadd(&v->counter, -i);
 }
 
 static inline long arch_atomic64_cmpxchg(atomic64_t *v, long old, long new)
 {
+	/* ktsan: xchg intercepted in cmpxchg.h */
 	return arch_cmpxchg(&v->counter, old, new);
 }
 
