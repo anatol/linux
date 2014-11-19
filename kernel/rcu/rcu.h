@@ -237,7 +237,7 @@ static inline bool __rcu_reclaim(const char *rn, struct rcu_head *head)
 		return true;
 	} else {
 		RCU_TRACE(trace_rcu_invoke_callback(rn, head);)
-		ktsan_rcu_synchronize();
+		ktsan_rcu_callback();
 		f = head->func;
 		WRITE_ONCE(head->func, (rcu_callback_t)0L);
 		f(head);
