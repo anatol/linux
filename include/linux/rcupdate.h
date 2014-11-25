@@ -396,7 +396,6 @@ static inline void rcu_preempt_sleep_check(void) { }
 ({									      \
 	uintptr_t _r_a_p__v = (uintptr_t)(v);				      \
 									      \
-	/* FIXME: disable / enable. */			\
 	ktsan_report_disable();				\
 	\
 	if (__builtin_constant_p(v) && (_r_a_p__v) == (uintptr_t)NULL)	      \
@@ -489,7 +488,6 @@ static inline void rcu_preempt_sleep_check(void) { }
 ({							\
 	__typeof__(*(p)) *rv;				\
 							\
-	/* FIXME: disable / enable. */			\
 	ktsan_report_disable();				\
 	rv = __rcu_dereference_check((p),		\
 		(c) || rcu_read_lock_held(), __rcu);	\

@@ -62,6 +62,7 @@
 #include <linux/suspend.h>
 #include <linux/ftrace.h>
 #include <linux/tick.h>
+#include <linux/ktsan.h>
 
 #include "tree.h"
 #include "rcu.h"
@@ -2888,6 +2889,7 @@ __call_rcu(struct rcu_head *head, rcu_callback_t func, int cpu, bool lazy)
 void call_rcu(struct rcu_head *head, rcu_callback_t func)
 {
 	__call_rcu(head, func, -1, 0);
+	ktsan_rcu_synchronize_sched();
 }
 EXPORT_SYMBOL_GPL(call_rcu);
 
@@ -2901,6 +2903,7 @@ EXPORT_SYMBOL_GPL(call_rcu);
 void kfree_call_rcu(struct rcu_head *head, rcu_callback_t func)
 {
 	__call_rcu(head, func, -1, 1);
+	ktsan_rcu_synchronize_bh();
 }
 EXPORT_SYMBOL_GPL(kfree_call_rcu);
 
