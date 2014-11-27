@@ -2437,8 +2437,10 @@ static void rcu_do_batch(struct rcu_data *rdp)
 		debug_rcu_head_unqueue(rhp);
 		/* call_rcu is defined to be call_rcu_sched
 		   in the current kernel configuration. */
-		ktsan_rcu_callback(ktsan_rcu_type_common);
-		ktsan_rcu_callback(ktsan_rcu_type_sched);
+		ktsan_sync_acquire(&ktsan_glob_sync[
+			ktsan_glob_sync_type_rcu_common]);
+		ktsan_sync_acquire(&ktsan_glob_sync[
+			ktsan_glob_sync_type_rcu_sched]);
 		if (__rcu_reclaim(rcu_state.name, rhp))
 			rcu_cblist_dequeued_lazy(&rcl);
 		/*
@@ -2893,7 +2895,7 @@ __call_rcu(struct rcu_head *head, rcu_callback_t func, int cpu, bool lazy)
 void call_rcu(struct rcu_head *head, rcu_callback_t func)
 {
 	__call_rcu(head, func, -1, 0);
-	ktsan_rcu_synchronize(ktsan_rcu_type_sched);
+	ktsan_sync_acquire(&ktsan_glob_sync[ktsan_glob_sync_type_rcu_sched]);
 }
 EXPORT_SYMBOL_GPL(call_rcu);
 
@@ -2907,7 +2909,7 @@ EXPORT_SYMBOL_GPL(call_rcu);
 void kfree_call_rcu(struct rcu_head *head, rcu_callback_t func)
 {
 	__call_rcu(head, func, -1, 1);
-	ktsan_rcu_synchronize(ktsan_rcu_type_bh);
+	ktsan_sync_acquire(&ktsan_glob_sync[ktsan_glob_sync_type_rcu_bh]);
 }
 EXPORT_SYMBOL_GPL(kfree_call_rcu);
 

@@ -341,7 +341,7 @@ static inline void rcu_preempt_sleep_check(void) { }
 	rcu_lockdep_assert(c, "suspicious rcu_dereference_check() usage"); \
 	rcu_dereference_sparse(p, space); \
 	ktsan_report_enable(); \
-	ktsan_rcu_dereference((void *)p); \
+	ktsan_sync_acquire((void *)(p)); \
 	((typeof(*p) __force __kernel *)(________p1)); \
 })
 #endif /* CONFIG_KTSAN */
@@ -420,7 +420,7 @@ static inline void rcu_preempt_sleep_check(void) { }
 		smp_store_release(&p, RCU_INITIALIZER((typeof(p))_r_a_p__v)); \
 	\
 	ktsan_report_enable();				\
-	ktsan_rcu_assign_pointer((void *)(v));			\
+	ktsan_sync_release((void *)(v));			\
 	\
 	_r_a_p__v;							      \
 })
@@ -643,7 +643,6 @@ static inline void rcu_read_lock(void)
 	rcu_lock_acquire(&rcu_lock_map);
 	RCU_LOCKDEP_WARN(!rcu_is_watching(),
 			 "rcu_read_lock() used illegally while idle");
-	ktsan_rcu_read_lock(ktsan_rcu_type_common);
 }
 
 /*
@@ -691,7 +690,7 @@ static inline void rcu_read_lock(void)
  */
 static inline void rcu_read_unlock(void)
 {
-	ktsan_rcu_read_unlock(ktsan_rcu_type_common);
+	ktsan_sync_release(&ktsan_glob_sync[ktsan_glob_sync_type_rcu_common]);
 	RCU_LOCKDEP_WARN(!rcu_is_watching(),
 			 "rcu_read_unlock() used illegally while idle");
 	__release(RCU);
@@ -718,7 +717,6 @@ static inline void rcu_read_lock_bh(void)
 	rcu_lock_acquire(&rcu_bh_lock_map);
 	RCU_LOCKDEP_WARN(!rcu_is_watching(),
 			 "rcu_read_lock_bh() used illegally while idle");
-	ktsan_rcu_read_lock_bh(ktsan_rcu_type_bh);
 }
 
 /*
@@ -728,7 +726,7 @@ static inline void rcu_read_lock_bh(void)
  */
 static inline void rcu_read_unlock_bh(void)
 {
-	ktsan_rcu_read_unlock_bh(ktsan_rcu_type_bh);
+	ktsan_sync_release(&ktsan_glob_sync[ktsan_glob_sync_type_rcu_bh]);
 	RCU_LOCKDEP_WARN(!rcu_is_watching(),
 			 "rcu_read_unlock_bh() used illegally while idle");
 	rcu_lock_release(&rcu_bh_lock_map);
@@ -755,7 +753,6 @@ static inline void rcu_read_lock_sched(void)
 	rcu_lock_acquire(&rcu_sched_lock_map);
 	RCU_LOCKDEP_WARN(!rcu_is_watching(),
 			 "rcu_read_lock_sched() used illegally while idle");
-	ktsan_rcu_read_lock_sched(ktsan_rcu_type_sched);
 }
 
 /* Used by lockdep and tracing: cannot be traced, cannot call lockdep. */
@@ -763,7 +760,6 @@ static inline notrace void rcu_read_lock_sched_notrace(void)
 {
 	preempt_disable_notrace();
 	__acquire(RCU_SCHED);
-	ktsan_rcu_read_lock(ktsan_rcu_type_sched);
 }
 
 /*
@@ -773,7 +769,7 @@ static inline notrace void rcu_read_lock_sched_notrace(void)
  */
 static inline void rcu_read_unlock_sched(void)
 {
-	ktsan_rcu_read_unlock_sched(ktsan_rcu_type_sched);
+	ktsan_sync_release(&ktsan_glob_sync[ktsan_glob_sync_type_rcu_sched]);
 	RCU_LOCKDEP_WARN(!rcu_is_watching(),
 			 "rcu_read_unlock_sched() used illegally while idle");
 	rcu_lock_release(&rcu_sched_lock_map);
@@ -784,7 +780,7 @@ static inline void rcu_read_unlock_sched(void)
 /* Used by lockdep and tracing: cannot be traced, cannot call lockdep. */
 static inline notrace void rcu_read_unlock_sched_notrace(void)
 {
-	ktsan_rcu_read_unlock(ktsan_rcu_type_sched);
+	ktsan_sync_release(&ktsan_glob_sync[ktsan_glob_sync_type_rcu_sched]);
 	__release(RCU_SCHED);
 	preempt_enable_notrace();
 }
