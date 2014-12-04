@@ -14,6 +14,7 @@
 #endif
 
 #include <linux/compiler.h>
+#include <linux/ktsan.h>
 #include <asm/alternative.h>
 #include <asm/rmwcc.h>
 #include <asm/barrier.h>
@@ -72,6 +73,7 @@
 static __always_inline void
 set_bit(long nr, volatile unsigned long *addr)
 {
+#ifndef CONFIG_KTSAN
 	if (IS_IMMEDIATE(nr)) {
 		asm volatile(LOCK_PREFIX "orb %1,%0"
 			: CONST_MASK_ADDR(nr, addr)
@@ -81,6 +83,9 @@ set_bit(long nr, volatile unsigned long *addr)
 		asm volatile(LOCK_PREFIX __ASM_SIZE(bts) " %1,%0"
 			: BITOP_ADDR(addr) : "Ir" (nr) : "memory");
 	}
+#else /* CONFIG_KTSAN */
+	ktsan_bitop_set_bit((void *)addr, nr);
+#endif /* CONFIG_KTSAN */
 }
 
 /**
@@ -110,6 +115,7 @@ static __always_inline void __set_bit(long nr, volatile unsigned long *addr)
 static __always_inline void
 clear_bit(long nr, volatile unsigned long *addr)
 {
+#ifndef CONFIG_KTSAN
 	if (IS_IMMEDIATE(nr)) {
 		asm volatile(LOCK_PREFIX "andb %1,%0"
 			: CONST_MASK_ADDR(nr, addr)
@@ -119,6 +125,9 @@ clear_bit(long nr, volatile unsigned long *addr)
 			: BITOP_ADDR(addr)
 			: "Ir" (nr));
 	}
+#else /* CONFIG_KTSAN */
+	ktsan_bitop_clear_bit((void *)addr, nr);
+#endif /* CONFIG_KTSAN */
 }
 
 /*
@@ -196,6 +205,7 @@ static __always_inline void __change_bit(long nr, volatile unsigned long *addr)
  */
 static __always_inline void change_bit(long nr, volatile unsigned long *addr)
 {
+#ifndef CONFIG_KTSAN
 	if (IS_IMMEDIATE(nr)) {
 		asm volatile(LOCK_PREFIX "xorb %1,%0"
 			: CONST_MASK_ADDR(nr, addr)
@@ -205,6 +215,9 @@ static __always_inline void change_bit(long nr, volatile unsigned long *addr)
 			: BITOP_ADDR(addr)
 			: "Ir" (nr));
 	}
+#else /* CONFIG_KTSAN */
+	ktsan_bitop_change_bit((void *)addr, nr);
+#endif /* CONFIG_KTSAN */
 }
 
 /**
@@ -217,7 +230,11 @@ static __always_inline void change_bit(long nr, volatile unsigned long *addr)
  */
 static __always_inline bool test_and_set_bit(long nr, volatile unsigned long *addr)
 {
+#ifndef CONFIG_KTSAN
 	return GEN_BINARY_RMWcc(LOCK_PREFIX __ASM_SIZE(bts), *addr, c, "Ir", nr);
+#else /* CONFIG_KTSAN */
+	return ktsan_bitop_test_and_set_bit((void *)addr, nr);
+#endif /* CONFIG_KTSAN */
 }
 
 /**
@@ -263,7 +280,11 @@ static __always_inline bool __test_and_set_bit(long nr, volatile unsigned long *
  */
 static __always_inline bool test_and_clear_bit(long nr, volatile unsigned long *addr)
 {
+#ifndef CONFIG_KTSAN
 	return GEN_BINARY_RMWcc(LOCK_PREFIX __ASM_SIZE(btr), *addr, c, "Ir", nr);
+#else /* CONFIG_KTSAN */
+	return ktsan_bitop_test_and_clear_bit((void *)addr, nr);
+#endif /* CONFIG_KTSAN */
 }
 
 /**
@@ -316,7 +337,11 @@ static __always_inline bool __test_and_change_bit(long nr, volatile unsigned lon
  */
 static __always_inline bool test_and_change_bit(long nr, volatile unsigned long *addr)
 {
+#ifndef CONFIG_KTSAN
 	return GEN_BINARY_RMWcc(LOCK_PREFIX __ASM_SIZE(btc), *addr, c, "Ir", nr);
+#else /* CONFIG_KTSAN */
+	return ktsan_bitop_test_and_change_bit((void *)addr, nr);
+#endif /* CONFIG_KTSAN */
 }
 
 static __always_inline bool constant_test_bit(long nr, const volatile unsigned long *addr)
