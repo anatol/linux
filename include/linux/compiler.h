@@ -248,6 +248,14 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
 #include <asm/barrier.h>
 #include <linux/kasan-checks.h>
 
+#ifdef CONFIG_KTSAN
+void ktsan_sync_acquire(void *addr);
+void ktsan_sync_release(void *addr);
+#else /* CONFIG_KTSAN */
+static inline void ktsan_sync_acquire(void *addr);
+static inline void ktsan_sync_release(void *addr);
+#endif
+
 #define __READ_ONCE(x, check)						\
 ({									\
 	union { typeof(x) __val; char __c[1]; } __u;			\
@@ -255,6 +263,10 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
 		__read_once_size(&(x), __u.__c, sizeof(x));		\
 	else								\
 		__read_once_size_nocheck(&(x), __u.__c, sizeof(x));	\
+	/* FIXME(xairy): acquire to suppress some	\
+	   benign races, remove when standalone memory	\
+	   barriers are supported. */			\
+	ktsan_sync_acquire((void *)(___x1));		\
 	smp_read_barrier_depends(); /* Enforce dependency ordering from x */ \
 	__u.__val;							\
 })
@@ -277,6 +289,10 @@ unsigned long read_word_at_a_time(const void *addr)
 ({							\
 	union { typeof(x) __val; char __c[1]; } __u =	\
 		{ .__val = (__force typeof(x)) (val) }; \
+	/* FIXME(xairy): release to suppress some	\
+	   benign races, remove when standalone memory	\
+	   barriers are supported. */			\
+	ktsan_sync_release((void *)(___x1));		\
 	__write_once_size(&(x), __u.__c, sizeof(x));	\
 	__u.__val;					\
 })
