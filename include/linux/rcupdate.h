@@ -329,9 +329,6 @@ static inline void rcu_preempt_sleep_check(void) { }
 	typeof(*p) *________p1 = (typeof(*p) *__force)READ_ONCE(p); \
 	RCU_LOCKDEP_WARN(!(c), "suspicious rcu_dereference_check() usage"); \
 	rcu_dereference_sparse(p, space); \
-	/* hlist_bl_set_first_rcu changes the last bit of the pointer by \
-	   applying LIST_BL_LOCKMASK. Do & ~7 to ignore that. */ \
-	ktsan_sync_acquire((void *)((unsigned long)________p1 & ~7)); \
 	((typeof(*p) __force __kernel *)(________p1)); \
 })
 
@@ -385,7 +382,6 @@ static inline void rcu_preempt_sleep_check(void) { }
  * please be careful when making changes to rcu_assign_pointer() and the
  * other macros that it invokes.
  */
-#ifndef CONFIG_KTSAN
 #define rcu_assign_pointer(p, v)					      \
 ({									      \
 	uintptr_t _r_a_p__v = (uintptr_t)(v);				      \
@@ -396,24 +392,6 @@ static inline void rcu_preempt_sleep_check(void) { }
 		smp_store_release(&p, RCU_INITIALIZER((typeof(p))_r_a_p__v)); \
 	_r_a_p__v;							      \
 })
-#else /* CONFIG_KTSAN */
-#define rcu_assign_pointer(p, v)					      \
-({									      \
-	uintptr_t _r_a_p__v = (uintptr_t)(v);				      \
-									      \
-	/* hlist_bl_set_first_rcu changes the last bit	\
-	   of the pointer by applying LIST_BL_LOCKMASK.	\
-	   Do & ~7 to ignore that. */			\
-	ktsan_sync_release(				\
-		(void *)((unsigned long)(v) & ~7));	\
-	\
-	if (__builtin_constant_p(v) && (_r_a_p__v) == (uintptr_t)NULL)	      \
-		WRITE_ONCE((p), (typeof(p))(_r_a_p__v));		      \
-	else								      \
-		smp_store_release(&p, RCU_INITIALIZER((typeof(p))_r_a_p__v)); \
-	_r_a_p__v;							      \
-})
-#endif
 
 /**
  * rcu_swap_protected() - swap an RCU and a regular pointer
@@ -430,6 +408,9 @@ static inline void rcu_preempt_sleep_check(void) { }
 	rcu_assign_pointer((rcu_ptr), (ptr));				\
 	(ptr) = __tmp;							\
 } while (0)
+=======
+#define rcu_assign_pointer(p, v) smp_store_release(&p, RCU_INITIALIZER(v))
+>>>>>>> Remove rcu_assign_pointer and rcu_dereference annotations
 
 /**
  * rcu_access_pointer() - fetch RCU pointer with no dereferencing
