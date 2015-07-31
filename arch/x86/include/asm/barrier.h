@@ -5,6 +5,8 @@
 #include <asm/alternative.h>
 #include <asm/nops.h>
 
+#include <linux/ktsan.h>
+
 /*
  * Force strict CPU ordering.
  * And yes, this might be required on UP too when we're talking
@@ -19,9 +21,27 @@
 #define wmb() asm volatile(ALTERNATIVE("lock; addl $0,-4(%%esp)", "sfence", \
 				       X86_FEATURE_XMM2) ::: "memory", "cc")
 #else
+#ifndef CONFIG_KTSAN
 #define mb() 	asm volatile("mfence":::"memory")
 #define rmb()	asm volatile("lfence":::"memory")
 #define wmb()	asm volatile("sfence" ::: "memory")
+#else /* CONFIG_KTSAN */
+#define mb()								\
+({									\
+	asm volatile("mfence":::"memory");				\
+	ktsan_membar_acq_rel();						\
+})
+#define rmb()								\
+({									\
+	asm volatile("lfence":::"memory");				\
+	ktsan_membar_acquire();						\
+})
+#define wmb()								\
+({									\
+	asm volatile("sfence":::"memory");				\
+	ktsan_membar_release();						\
+})
+#endif
 #endif
 
 /**
@@ -60,8 +80,21 @@ static inline unsigned long array_index_mask_nospec(unsigned long index,
 #else
 #define __smp_mb()	asm volatile("lock; addl $0,-4(%%rsp)" ::: "memory", "cc")
 #endif
+#ifndef CONFIG_KTSAN
 #define __smp_rmb()	dma_rmb()
 #define __smp_wmb()	barrier()
+#else /* CONFIG_KTSAN */
+#define smp_rmb()                                                      \
+({                                                                     \
+       dma_rmb();                                                      \
+       ktsan_membar_acquire();                                         \
+})
+#define smp_wmb()                                                      \
+({                                                                     \
+       barrier();                                                      \
+       ktsan_membar_release();                                         \
+})
+#endif
 #define __smp_store_mb(var, value) do { (void)xchg(&var, value); } while (0)
 
 #define __smp_store_release(p, v)					\
@@ -80,8 +113,13 @@ do {									\
 })
 
 /* Atomic operations are already serializing on x86 */
+#ifndef CONFIG_KTSAN
 #define __smp_mb__before_atomic()	barrier()
 #define __smp_mb__after_atomic()	barrier()
+#else /* CONFIG_KTSAN */
+#define __smp_mb__before_atomic()	ktsan_membar_acquire()
+#define __smp_mb__after_atomic()	ktsan_membar_release()
+#endif
 
 #include <asm-generic/barrier.h>
 
