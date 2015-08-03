@@ -97,6 +97,8 @@ static inline unsigned long array_index_mask_nospec(unsigned long index,
 #endif
 #define __smp_store_mb(var, value) do { (void)xchg(&var, value); } while (0)
 
+#ifndef CONFIG_KTSAN
+
 #define __smp_store_release(p, v)					\
 do {									\
 	compiletime_assert_atomic_type(*p);				\
@@ -111,6 +113,27 @@ do {									\
 	barrier();							\
 	___p1;								\
 })
+
+#else /* CONFIG_KTSAN */
+
+#define __smp_store_release(p, v)					\
+do {									\
+	compiletime_assert_atomic_type(*p);				\
+	ktsan_sync_release((void *)p);		\
+	barrier();							\
+	WRITE_ONCE(*p, v);						\
+} while (0)
+
+#define __smp_load_acquire(p)						\
+({									\
+	typeof(*p) ___p1 = READ_ONCE(*p);				\
+	compiletime_assert_atomic_type(*p);				\
+	barrier();							\
+	ktsan_sync_acquire((void *)p);		\ 
+	___p1;								\
+})
+
+#endif /* CONFIG_KTSAN */
 
 /* Atomic operations are already serializing on x86 */
 #ifndef CONFIG_KTSAN
