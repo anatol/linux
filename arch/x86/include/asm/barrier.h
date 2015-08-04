@@ -140,8 +140,8 @@ do {									\
 #define __smp_mb__before_atomic()	barrier()
 #define __smp_mb__after_atomic()	barrier()
 #else /* CONFIG_KTSAN */
-#define __smp_mb__before_atomic()	ktsan_membar_acquire()
-#define __smp_mb__after_atomic()	ktsan_membar_release()
+#define __smp_mb__before_atomic()	ktsan_membar_release()
+#define __smp_mb__after_atomic()	ktsan_membar_acquire()
 #endif
 
 #include <asm-generic/barrier.h>
