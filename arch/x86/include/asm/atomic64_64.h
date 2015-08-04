@@ -57,7 +57,7 @@ static __always_inline void arch_atomic64_add(long i, atomic64_t *v)
 		     : "=m" (v->counter)
 		     : "er" (i), "m" (v->counter));
 #else
-	ktsan_atomic64_add(v, i);
+	ktsan_atomic64_fetch_add((void *)v, i, ktsan_memory_order_relaxed);
 #endif
 }
 
@@ -75,7 +75,7 @@ static inline void arch_atomic64_sub(long i, atomic64_t *v)
 		     : "=m" (v->counter)
 		     : "er" (i), "m" (v->counter));
 #else
-	ktsan_atomic64_sub(v, i);
+	ktsan_atomic64_fetch_add((void *)v, -i, ktsan_memory_order_relaxed);
 #endif
 }
 
