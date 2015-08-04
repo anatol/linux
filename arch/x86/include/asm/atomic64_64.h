@@ -23,7 +23,7 @@ static inline long arch_atomic64_read(const atomic64_t *v)
 #ifndef CONFIG_KTSAN
 	return READ_ONCE((v)->counter);
 #else
-	return ktsan_atomic64_read(v);
+	return ktsan_atomic64_load((void *)v, ktsan_memory_order_relaxed);
 #endif
 }
 
@@ -39,7 +39,7 @@ static inline void arch_atomic64_set(atomic64_t *v, long i)
 #ifndef CONFIG_KTSAN
 	WRITE_ONCE(v->counter, i);
 #else
-	ktsan_atomic64_set(v, i);
+	ktsan_atomic64_store((void *)v, i, ktsan_memory_order_relaxed);
 #endif
 }
 

@@ -171,6 +171,8 @@ void ftrace_likely_update(struct ftrace_likely_data *f, int val,
 
 #include <uapi/linux/types.h>
 
+#ifndef CONFIG_KASAN
+
 #define __READ_ONCE_SIZE						\
 ({									\
 	switch (size) {							\
@@ -184,6 +186,24 @@ void ftrace_likely_update(struct ftrace_likely_data *f, int val,
 		barrier();						\
 	}								\
 })
+
+#else /* CONFIG_KASAN */
+
+#define __READ_ONCE_SIZE						\
+({									\
+	switch (size) {							\
+	case 1: *(__u8 *)res = ktsan_atomic8_load((void *)p, ktsan_memory_order_relaxed); break;		\
+	case 2: *(__u16 *)res = ktsan_atomic16_load((void *)p, ktsan_memory_order_relaxed); break;		\
+	case 4: *(__u32 *)res = ktsan_atomic32_load((void *)p, ktsan_memory_order_relaxed); break;		\
+	case 8: *(__u64 *)res = ktsan_atomic64_load((void *)p, ktsan_memory_order_relaxed); break;		\
+	default:							\
+		barrier();						\
+		__builtin_memcpy((void *)res, (const void *)p, size);	\
+		barrier();						\
+	}								\
+})
+
+#endif
 
 static __always_inline
 void __read_once_size(const volatile void *p, void *res, int size)
@@ -209,6 +229,8 @@ void __read_once_size_nocheck(const volatile void *p, void *res, int size)
 	__READ_ONCE_SIZE;
 }
 
+#ifndef CONFIG_KASAN
+
 static __always_inline void __write_once_size(volatile void *p, void *res, int size)
 {
 	switch (size) {
@@ -222,6 +244,24 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
 		barrier();
 	}
 }
+
+#else /* CONFIG_KASAN */
+
+static __always_inline void __write_once_size(volatile void *p, void *res, int size)
+{
+	switch (size) {
+	case 1: ktsan_atomic8_store((void *)p, *(__u8 *)res, ktsan_memory_order_relaxed); break;
+	case 2: ktsan_atomic16_store((void *)p, *(__u16 *)res, ktsan_memory_order_relaxed); break;
+	case 4: ktsan_atomic32_store((void *)p, *(__u32 *)res, ktsan_memory_order_relaxed); break;
+	case 8: ktsan_atomic64_store((void *)p, *(__u64 *)res, ktsan_memory_order_relaxed); break;
+	default:
+		barrier();
+		__builtin_memcpy((void *)p, (const void *)res, size);
+		barrier();
+	}
+}
+
+#endif
 
 /*
  * Prevent the compiler from merging or refetching reads or writes. The
@@ -248,14 +288,6 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
 #include <asm/barrier.h>
 #include <linux/kasan-checks.h>
 
-#ifdef CONFIG_KTSAN
-void ktsan_sync_nonmat_acquire(void *addr);
-void ktsan_sync_nonmat_release(void *addr);
-#else /* CONFIG_KTSAN */
-static inline void ktsan_sync_nonmat_acquire(void *addr);
-static inline void ktsan_sync_nonmat_release(void *addr);
-#endif
-
 #define __READ_ONCE(x, check)						\
 ({									\
 	union { typeof(x) __val; char __c[1]; } __u;			\
@@ -263,7 +295,6 @@ static inline void ktsan_sync_nonmat_release(void *addr);
 		__read_once_size(&(x), __u.__c, sizeof(x));		\
 	else								\
 		__read_once_size_nocheck(&(x), __u.__c, sizeof(x));	\
-	ktsan_sync_nonmat_release((void *)(___x1));		\
 	smp_read_barrier_depends(); /* Enforce dependency ordering from x */ \
 	__u.__val;							\
 })
@@ -286,7 +317,6 @@ unsigned long read_word_at_a_time(const void *addr)
 ({							\
 	union { typeof(x) __val; char __c[1]; } __u =	\
 		{ .__val = (__force typeof(x)) (val) }; \
-	ktsan_sync_nonmat_release((void *)(___x1));		\
 	__write_once_size(&(x), __u.__c, sizeof(x));	\
 	__u.__val;					\
 })
