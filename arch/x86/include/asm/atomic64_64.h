@@ -93,7 +93,8 @@ static inline bool arch_atomic64_sub_and_test(long i, atomic64_t *v)
 #ifndef CONFIG_KTSAN
 	return GEN_BINARY_RMWcc(LOCK_PREFIX "subq", v->counter, e, "er", i);
 #else
-	return ktsan_atomic64_sub_and_test(v, i);
+	return (ktsan_atomic64_fetch_add((void *)v, -i,
+			ktsan_memory_order_acq_rel) - i) == 0;
 #endif
 }
 #define arch_atomic64_sub_and_test arch_atomic64_sub_and_test
@@ -111,7 +112,7 @@ static __always_inline void arch_atomic64_inc(atomic64_t *v)
 		     : "=m" (v->counter)
 		     : "m" (v->counter));
 #else
-	ktsan_atomic64_inc(v);
+	ktsan_atomic64_fetch_add((void *)v, 1, ktsan_memory_order_relaxed);
 #endif
 }
 #define arch_atomic64_inc arch_atomic64_inc
@@ -129,7 +130,7 @@ static __always_inline void arch_atomic64_dec(atomic64_t *v)
 		     : "=m" (v->counter)
 		     : "m" (v->counter));
 #else
-	ktsan_atomic64_dec(v);
+	ktsan_atomic64_fetch_add((void *)v, -1, ktsan_memory_order_relaxed);
 #endif
 }
 #define arch_atomic64_dec arch_atomic64_dec
@@ -147,7 +148,8 @@ static inline bool arch_atomic64_dec_and_test(atomic64_t *v)
 #ifndef CONFIG_KTSAN
 	return GEN_UNARY_RMWcc(LOCK_PREFIX "decq", v->counter, e);
 #else
-	return ktsan_atomic64_dec_and_test(v);
+	return (ktsan_atomic64_fetch_add((void *)v, -1,
+			ktsan_memory_order_acq_rel) - 1) == 0;
 #endif
 }
 #define arch_atomic64_dec_and_test arch_atomic64_dec_and_test
@@ -165,7 +167,8 @@ static inline bool arch_atomic64_inc_and_test(atomic64_t *v)
 #ifndef CONFIG_KTSAN
 	return GEN_UNARY_RMWcc(LOCK_PREFIX "incq", v->counter, e);
 #else
-	return ktsan_atomic64_inc_and_test(v);
+	return (ktsan_atomic64_fetch_add((void *)v, 1,
+			ktsan_memory_order_acq_rel) + 1) == 0;
 #endif
 }
 #define arch_atomic64_inc_and_test arch_atomic64_inc_and_test
@@ -184,7 +187,8 @@ static inline bool arch_atomic64_add_negative(long i, atomic64_t *v)
 #ifndef CONFIG_KTSAN
 	return GEN_BINARY_RMWcc(LOCK_PREFIX "addq", v->counter, s, "er", i);
 #else
-	return ktsan_atomic64_add_negative(v, i);
+	return (ktsan_atomic64_fetch_add((void *)v, i,
+			ktsan_memory_order_acq_rel) + i) < 0;
 #endif
 }
 #define arch_atomic64_add_negative arch_atomic64_add_negative
@@ -198,13 +202,22 @@ static inline bool arch_atomic64_add_negative(long i, atomic64_t *v)
  */
 static __always_inline long arch_atomic64_add_return(long i, atomic64_t *v)
 {
-	/* ktsan: xadd intercepted in cmpxchg.h */
+#ifndef CONFIG_KTSAN
 	return i + xadd(&v->counter, i);
+#else
+	return (ktsan_atomic64_fetch_add((void *)v, i,
+			ktsan_memory_order_acq_rel) + i);
+#endif
 }
 
 static inline long arch_atomic64_sub_return(long i, atomic64_t *v)
 {
+#ifndef CONFIG_KTSAN
 	return arch_atomic64_add_return(-i, v);
+#else
+	return (ktsan_atomic64_fetch_add((void *)v, -i,
+			ktsan_memory_order_acq_rel) - i);
+#endif
 }
 
 static inline long arch_atomic64_fetch_add(long i, atomic64_t *v)
@@ -214,14 +227,23 @@ static inline long arch_atomic64_fetch_add(long i, atomic64_t *v)
 
 static inline long arch_atomic64_fetch_sub(long i, atomic64_t *v)
 {
+#ifndef CONFIG_KTSAN
 	/* ktsan: xadd intercepted in cmpxchg.h */
 	return xadd(&v->counter, -i);
+#else
+	return ktsan_atomic64_fetch_add((void *)v, -i, ktsan_memory_order_acq_rel);
+#endif
 }
 
 static inline long arch_atomic64_cmpxchg(atomic64_t *v, long old, long new)
 {
-	/* ktsan: xchg intercepted in cmpxchg.h */
+#ifndef CONFIG_KTSAN
+	/* ktsan: cmpxchg intercepted in cmpxchg.h */
 	return arch_cmpxchg(&v->counter, old, new);
+#else
+	return ktsan_atomic64_exchange((void *)v, new,
+			ktsan_memory_order_acq_rel);
+#endif
 }
 
 #define arch_atomic64_try_cmpxchg arch_atomic64_try_cmpxchg
