@@ -26,21 +26,9 @@
 #define rmb()	asm volatile("lfence":::"memory")
 #define wmb()	asm volatile("sfence" ::: "memory")
 #else /* CONFIG_KTSAN */
-#define mb()								\
-({									\
-	asm volatile("mfence":::"memory");				\
-	ktsan_thread_fence(ktsan_memory_order_acq_rel);			\
-})
-#define rmb()								\
-({									\
-	asm volatile("lfence":::"memory");				\
-	ktsan_thread_fence(ktsan_memory_order_acquire);			\
-})
-#define wmb()								\
-({									\
-	asm volatile("sfence":::"memory");				\
-	ktsan_thread_fence(ktsan_memory_order_release);			\
-})
+#define mb()	ktsan_thread_fence(ktsan_memory_order_acq_rel)
+#define rmb()	ktsan_thread_fence(ktsan_memory_order_acquire)
+#define wmb()	ktsan_thread_fence(ktsan_memory_order_release)
 #endif
 #endif
 
@@ -84,16 +72,9 @@ static inline unsigned long array_index_mask_nospec(unsigned long index,
 #define __smp_rmb()	dma_rmb()
 #define __smp_wmb()	barrier()
 #else /* CONFIG_KTSAN */
-#define smp_rmb()                                                      \
-({                                                                     \
-       dma_rmb();                                                      \
-       ktsan_thread_fence(ktsan_memory_order_acq_rel);                 \
-})
-#define smp_wmb()                                                      \
-({                                                                     \
-       barrier();                                                      \
-       ktsan_thread_fence(ktsan_memory_order_release);	               \
-})
+#define __smp_mb()       ktsan_thread_fence(ktsan_memory_order_acq_rel)
+#define __smp_rmb()      ktsan_thread_fence(ktsan_memory_order_acquire)
+#define __smp_wmb()      ktsan_thread_fence(ktsan_memory_order_release)
 #endif
 #define __smp_store_mb(var, value) do { (void)xchg(&var, value); } while (0)
 
