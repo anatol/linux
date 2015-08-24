@@ -87,13 +87,14 @@ _raw_spin_unlock_irqrestore(raw_spinlock_t *lock, unsigned long flags)
 
 static inline int __raw_spin_trylock(raw_spinlock_t *lock)
 {
-	ktsan_mtx_pre_lock(lock, true, true);
 	preempt_disable();
+	ktsan_mtx_pre_lock(lock, true, true);
 	if (do_raw_spin_trylock(lock)) {
 		spin_acquire(&lock->dep_map, 0, 1, _RET_IP_);
 		ktsan_mtx_post_lock(lock, true, true);
 		return 1;
 	}
+	ktsan_event_enable();
 	preempt_enable();
 	return 0;
 }
@@ -109,9 +110,9 @@ static inline unsigned long __raw_spin_lock_irqsave(raw_spinlock_t *lock)
 {
 	unsigned long flags;
 
-	ktsan_mtx_pre_lock(lock, true, false);
 	local_irq_save(flags);
 	preempt_disable();
+	ktsan_mtx_pre_lock(lock, true, false);
 	spin_acquire(&lock->dep_map, 0, 0, _RET_IP_);
 	/*
 	 * On lockdep we dont want the hand-coded irq-enable of
@@ -129,9 +130,9 @@ static inline unsigned long __raw_spin_lock_irqsave(raw_spinlock_t *lock)
 
 static inline void __raw_spin_lock_irq(raw_spinlock_t *lock)
 {
-	ktsan_mtx_pre_lock(lock, true, false);
 	local_irq_disable();
 	preempt_disable();
+	ktsan_mtx_pre_lock(lock, true, false);
 	spin_acquire(&lock->dep_map, 0, 0, _RET_IP_);
 	LOCK_CONTENDED(lock, do_raw_spin_trylock, do_raw_spin_lock);
 	ktsan_mtx_post_lock(lock, true, false);
@@ -139,8 +140,8 @@ static inline void __raw_spin_lock_irq(raw_spinlock_t *lock)
 
 static inline void __raw_spin_lock_bh(raw_spinlock_t *lock)
 {
-	ktsan_mtx_pre_lock(lock, true, false);
 	__local_bh_disable_ip(_RET_IP_, SOFTIRQ_LOCK_OFFSET);
+	ktsan_mtx_pre_lock(lock, true, false);
 	spin_acquire(&lock->dep_map, 0, 0, _RET_IP_);
 	LOCK_CONTENDED(lock, do_raw_spin_trylock, do_raw_spin_lock);
 	ktsan_mtx_post_lock(lock, true, false);
@@ -148,8 +149,8 @@ static inline void __raw_spin_lock_bh(raw_spinlock_t *lock)
 
 static inline void __raw_spin_lock(raw_spinlock_t *lock)
 {
-	ktsan_mtx_pre_lock(lock, true, false);
 	preempt_disable();
+	ktsan_mtx_pre_lock(lock, true, false);
 	spin_acquire(&lock->dep_map, 0, 0, _RET_IP_);
 	LOCK_CONTENDED(lock, do_raw_spin_trylock, do_raw_spin_lock);
 	ktsan_mtx_post_lock(lock, true, false);
@@ -162,6 +163,7 @@ static inline void __raw_spin_unlock(raw_spinlock_t *lock)
 	ktsan_mtx_pre_unlock(lock, true);
 	spin_release(&lock->dep_map, 1, _RET_IP_);
 	do_raw_spin_unlock(lock);
+	ktsan_mtx_post_unlock(lock, true);
 	preempt_enable();
 }
 
@@ -171,6 +173,7 @@ static inline void __raw_spin_unlock_irqrestore(raw_spinlock_t *lock,
 	ktsan_mtx_pre_unlock(lock, true);
 	spin_release(&lock->dep_map, 1, _RET_IP_);
 	do_raw_spin_unlock(lock);
+	ktsan_mtx_post_unlock(lock, true);
 	local_irq_restore(flags);
 	preempt_enable();
 }
@@ -180,6 +183,7 @@ static inline void __raw_spin_unlock_irq(raw_spinlock_t *lock)
 	ktsan_mtx_pre_unlock(lock, true);
 	spin_release(&lock->dep_map, 1, _RET_IP_);
 	do_raw_spin_unlock(lock);
+	ktsan_mtx_post_unlock(lock, true);
 	local_irq_enable();
 	preempt_enable();
 }
@@ -189,18 +193,20 @@ static inline void __raw_spin_unlock_bh(raw_spinlock_t *lock)
 	ktsan_mtx_pre_unlock(lock, true);
 	spin_release(&lock->dep_map, 1, _RET_IP_);
 	do_raw_spin_unlock(lock);
+	ktsan_mtx_post_unlock(lock, true);
 	__local_bh_enable_ip(_RET_IP_, SOFTIRQ_LOCK_OFFSET);
 }
 
 static inline int __raw_spin_trylock_bh(raw_spinlock_t *lock)
 {
-	ktsan_mtx_pre_lock(lock, true, true);
 	__local_bh_disable_ip(_RET_IP_, SOFTIRQ_LOCK_OFFSET);
+	ktsan_mtx_pre_lock(lock, true, true);
 	if (do_raw_spin_trylock(lock)) {
 		spin_acquire(&lock->dep_map, 0, 1, _RET_IP_);
 		ktsan_mtx_post_lock(lock, true, true);
 		return 1;
 	}
+	ktsan_event_enable();
 	__local_bh_enable_ip(_RET_IP_, SOFTIRQ_LOCK_OFFSET);
 	return 0;
 }

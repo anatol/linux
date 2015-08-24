@@ -716,6 +716,7 @@ void __sched mutex_unlock(struct mutex *lock)
 		return;
 #endif
 	__mutex_unlock_slowpath(lock, _RET_IP_);
+	ktsan_mtx_post_unlock(lock, true);
 }
 EXPORT_SYMBOL(mutex_unlock);
 
