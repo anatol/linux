@@ -1405,10 +1405,12 @@ int __sched mutex_trylock(struct mutex *lock)
 	ktsan_mtx_pre_lock(lock, true, true);
 
 	locked = __mutex_trylock(lock);
-	if (locked)
+	if (locked) {
 		mutex_acquire(&lock->dep_map, 0, 1, _RET_IP_);
-
-	ktsan_mtx_post_lock(lock, true, true);
+		ktsan_mtx_post_lock(lock, true, true);
+	} else {
+		ktsan_thr_event_enable();
+	}
 
 	return locked;
 }

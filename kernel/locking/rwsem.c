@@ -64,7 +64,7 @@ int down_read_trylock(struct rw_semaphore *sem)
 		rwsem_set_reader_owned(sem);
 		ktsan_mtx_post_lock(sem, false, true);
 	} else {
-		ktsan_event_enable();
+		ktsan_thr_event_enable();
 	}
 	return ret;
 }
@@ -121,7 +121,7 @@ int down_write_trylock(struct rw_semaphore *sem)
 		rwsem_set_owner(sem);
 		ktsan_mtx_post_lock(sem, true, true);
 	} else {
-		ktsan_event_enable();
+		ktsan_thr_event_enable();
 	}
 
 	return ret;
