@@ -258,7 +258,7 @@ void __sched mutex_lock(struct mutex *lock)
 	if (!__mutex_trylock_fast(lock))
 		__mutex_lock_slowpath(lock);
 
-	ktsan_mtx_post_lock(lock, true, false);
+	ktsan_mtx_post_lock(lock, true, false, true);
 }
 EXPORT_SYMBOL(mutex_lock);
 #endif
@@ -1287,12 +1287,12 @@ int __sched mutex_lock_interruptible(struct mutex *lock)
 
 	ret = __mutex_trylock_fast(lock);
 	if (ret) {
-		ktsan_mtx_post_lock(lock, true, false);
+		ktsan_mtx_post_lock(lock, true, false, true);
 		return 0;
 	}
 
 	ret = __mutex_lock_interruptible_slowpath(lock);
-	ktsan_mtx_post_lock(lock, true, false);
+	ktsan_mtx_post_lock(lock, true, false, true);
 	return ret;
 }
 
@@ -1319,12 +1319,12 @@ int __sched mutex_lock_killable(struct mutex *lock)
 
 	ret = __mutex_trylock_fast(lock);
 	if (ret) {
-		ktsan_mtx_post_lock(lock, true, false);
+		ktsan_mtx_post_lock(lock, true, false, true);
 		return 0;
 	}
 
 	ret = __mutex_lock_killable_slowpath(lock);
-	ktsan_mtx_post_lock(lock, true, false);
+	ktsan_mtx_post_lock(lock, true, false, true);
 	return ret;
 }
 EXPORT_SYMBOL(mutex_lock_killable);
@@ -1407,10 +1407,8 @@ int __sched mutex_trylock(struct mutex *lock)
 	locked = __mutex_trylock(lock);
 	if (locked) {
 		mutex_acquire(&lock->dep_map, 0, 1, _RET_IP_);
-		ktsan_mtx_post_lock(lock, true, true);
-	} else {
-		ktsan_thr_event_enable();
 	}
+	ktsan_mtx_post_lock(lock, true, true, locked == 1);
 
 	return locked;
 }

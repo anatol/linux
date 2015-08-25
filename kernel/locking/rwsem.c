@@ -28,7 +28,7 @@ void __sched down_read(struct rw_semaphore *sem)
 
 	LOCK_CONTENDED(sem, __down_read_trylock, __down_read);
 	rwsem_set_reader_owned(sem);
-	ktsan_mtx_post_lock(sem, false, false);
+	ktsan_mtx_post_lock(sem, false, false, true);
 }
 
 EXPORT_SYMBOL(down_read);
@@ -62,10 +62,8 @@ int down_read_trylock(struct rw_semaphore *sem)
 	if (ret == 1) {
 		rwsem_acquire_read(&sem->dep_map, 0, 1, _RET_IP_);
 		rwsem_set_reader_owned(sem);
-		ktsan_mtx_post_lock(sem, false, true);
-	} else {
-		ktsan_thr_event_enable();
 	}
+	ktsan_mtx_post_lock(sem, false, true, ret == 1);
 	return ret;
 }
 
@@ -82,7 +80,7 @@ void __sched down_write(struct rw_semaphore *sem)
 
 	LOCK_CONTENDED(sem, __down_write_trylock, __down_write);
 	rwsem_set_owner(sem);
-	ktsan_mtx_post_lock(sem, true, false);
+	ktsan_mtx_post_lock(sem, true, false, true);
 }
 
 EXPORT_SYMBOL(down_write);
@@ -119,10 +117,8 @@ int down_write_trylock(struct rw_semaphore *sem)
 	if (ret == 1) {
 		rwsem_acquire(&sem->dep_map, 0, 1, _RET_IP_);
 		rwsem_set_owner(sem);
-		ktsan_mtx_post_lock(sem, true, true);
-	} else {
-		ktsan_thr_event_enable();
 	}
+	ktsan_mtx_post_lock(sem, true, true, ret == 1);
 
 	return ret;
 }
@@ -185,7 +181,7 @@ void down_read_nested(struct rw_semaphore *sem, int subclass)
 
 	LOCK_CONTENDED(sem, __down_read_trylock, __down_read);
 	rwsem_set_reader_owned(sem);
-	ktsan_mtx_post_lock(sem, false, false);
+	ktsan_mtx_post_lock(sem, false, false, true);
 }
 
 EXPORT_SYMBOL(down_read_nested);
@@ -198,7 +194,7 @@ void _down_write_nest_lock(struct rw_semaphore *sem, struct lockdep_map *nest)
 
 	LOCK_CONTENDED(sem, __down_write_trylock, __down_write);
 	rwsem_set_owner(sem);
-	ktsan_mtx_post_lock(sem, true, false);
+	ktsan_mtx_post_lock(sem, true, false, true);
 }
 
 EXPORT_SYMBOL(_down_write_nest_lock);
@@ -210,7 +206,7 @@ void down_read_non_owner(struct rw_semaphore *sem)
 
 	__down_read(sem);
 	__rwsem_set_reader_owned(sem, NULL);
-	ktsan_mtx_post_lock(sem, false, false);
+	ktsan_mtx_post_lock(sem, false, false, true);
 }
 
 EXPORT_SYMBOL(down_read_non_owner);
@@ -223,7 +219,7 @@ void down_write_nested(struct rw_semaphore *sem, int subclass)
 
 	LOCK_CONTENDED(sem, __down_write_trylock, __down_write);
 	rwsem_set_owner(sem);
-	ktsan_mtx_post_lock(sem, true, false);
+	ktsan_mtx_post_lock(sem, true, false, true);
 }
 
 EXPORT_SYMBOL(down_write_nested);
