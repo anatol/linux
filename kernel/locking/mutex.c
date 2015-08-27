@@ -252,8 +252,9 @@ static void __sched __mutex_lock_slowpath(struct mutex *lock);
  */
 void __sched mutex_lock(struct mutex *lock)
 {
-	ktsan_mtx_pre_lock(lock, true, false);
 	might_sleep();
+
+	ktsan_mtx_pre_lock(lock, true, false);
 
 	if (!__mutex_trylock_fast(lock))
 		__mutex_lock_slowpath(lock);
@@ -681,7 +682,9 @@ fail:
 		 * we do not, make it so, otherwise we might get stuck.
 		 */
 		__set_current_state(TASK_RUNNING);
+		ktsan_mtx_post_lock(lock, true, false, false);
 		schedule_preempt_disabled();
+		ktsan_mtx_pre_lock(lock, true, false);
 	}
 
 	return false;
@@ -1005,7 +1008,9 @@ __mutex_lock_common(struct mutex *lock, long state, unsigned int subclass,
 		}
 
 		spin_unlock(&lock->wait_lock);
+		ktsan_mtx_post_lock(lock, true, false, false);
 		schedule_preempt_disabled();
+		ktsan_mtx_pre_lock(lock, true, false);
 
 		/*
 		 * ww_mutex needs to always recheck its position since its waiter
@@ -1282,8 +1287,8 @@ int __sched mutex_lock_interruptible(struct mutex *lock)
 {
 	int ret;
 
-	ktsan_mtx_pre_lock(lock, true, false);
 	might_sleep();
+	ktsan_mtx_pre_lock(lock, true, false);
 
 	ret = __mutex_trylock_fast(lock);
 	if (ret) {
@@ -1314,8 +1319,8 @@ int __sched mutex_lock_killable(struct mutex *lock)
 {
 	int ret;
 
-	ktsan_mtx_pre_lock(lock, true, false);
 	might_sleep();
+	ktsan_mtx_pre_lock(lock, true, false);
 
 	ret = __mutex_trylock_fast(lock);
 	if (ret) {

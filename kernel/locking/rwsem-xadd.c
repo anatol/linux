@@ -265,6 +265,7 @@ __rwsem_down_read_failed_common(struct rw_semaphore *sem, int state)
 	raw_spin_unlock_irq(&sem->wait_lock);
 	wake_up_q(&wake_q);
 
+	ktsan_mtx_post_lock(sem, false, false, false);
 	/* wait to be given the lock */
 	while (true) {
 		set_current_state(state);
@@ -279,6 +280,7 @@ __rwsem_down_read_failed_common(struct rw_semaphore *sem, int state)
 		}
 		schedule();
 	}
+	ktsan_mtx_pre_lock(sem, false, false);
 
 	__set_current_state(TASK_RUNNING);
 	return sem;
@@ -569,6 +571,7 @@ __rwsem_down_write_failed_common(struct rw_semaphore *sem, int state)
 			break;
 		raw_spin_unlock_irq(&sem->wait_lock);
 
+		ktsan_mtx_post_lock(sem, true, false, false);
 		/* Block until there are no active lockers. */
 		do {
 			if (signal_pending_state(state, current))
@@ -577,6 +580,7 @@ __rwsem_down_write_failed_common(struct rw_semaphore *sem, int state)
 			schedule();
 			set_current_state(state);
 		} while ((count = atomic_long_read(&sem->count)) & RWSEM_ACTIVE_MASK);
+		ktsan_mtx_pre_lock(sem, true, false);
 
 		raw_spin_lock_irq(&sem->wait_lock);
 	}
