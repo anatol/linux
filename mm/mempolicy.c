@@ -2070,6 +2070,8 @@ alloc_pages_vma(gfp_t gfp, int order, struct vm_area_struct *vma,
 	page = __alloc_pages_nodemask(gfp, order, preferred_nid, nmask);
 	mpol_cond_put(pol);
 out:
+	if (page)
+		read_mems_allowed_cancel();
 	return page;
 }
 
@@ -2106,6 +2108,9 @@ struct page *alloc_pages_current(gfp_t gfp, unsigned order)
 		page = __alloc_pages_nodemask(gfp, order,
 				policy_node(gfp, pol, numa_node_id()),
 				policy_nodemask(gfp, pol));
+
+	if (page)
+		read_mems_allowed_cancel();
 
 	return page;
 }

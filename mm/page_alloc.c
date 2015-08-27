@@ -4404,6 +4404,8 @@ out:
 		__free_pages(page, order);
 		page = NULL;
 	}
+	if (page)
+		read_mems_allowed_cancel();
 
 	trace_mm_page_alloc(page, order, alloc_mask, ac.migratetype);
 
