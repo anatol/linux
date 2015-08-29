@@ -76,6 +76,7 @@
 void __init_rwsem(struct rw_semaphore *sem, const char *name,
 		  struct lock_class_key *key)
 {
+	ktsan_thr_event_disable();
 #ifdef CONFIG_DEBUG_LOCK_ALLOC
 	/*
 	 * Make sure we are not reinitializing a held semaphore:
@@ -90,6 +91,7 @@ void __init_rwsem(struct rw_semaphore *sem, const char *name,
 	sem->owner = NULL;
 	osq_lock_init(&sem->osq);
 #endif
+	ktsan_thr_event_enable();
 }
 
 EXPORT_SYMBOL(__init_rwsem);
