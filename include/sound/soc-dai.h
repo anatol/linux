@@ -48,10 +48,15 @@ struct snd_compr_stream;
 #define SND_SOC_DAIFMT_GATED		(0 << 4) /* clock is gated */
 
 /*
- * DAI hardware signal inversions.
+ * DAI hardware signal polarity.
  *
- * Specifies whether the DAI can also support inverted clocks for the specified
- * format.
+ * For BCLK:
+ *  - "normal" polarity means signal is available at rising edge of BCLK
+ *  - "inverted" polarity means signal is available at falling edge of BCLK
+ *
+ * For FSYNC:
+ *  - "normal" polarity means frame starts at rising edge of FSYNC
+ *  - "inverted" polarity means frame starts at falling edge of FSYNC
  */
 #define SND_SOC_DAIFMT_NB_NF		(0 << 8) /* normal bit clock + frame */
 #define SND_SOC_DAIFMT_NB_IF		(2 << 8) /* normal BCLK + inv FRM */
