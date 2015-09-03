@@ -1027,7 +1027,7 @@ __mod_timer(struct timer_list *timer, unsigned long expires, unsigned int option
 		 */
 		if (likely(base->running_timer != timer)) {
 			/* See the comment in lock_timer_base() */
-			timer->flags |= TIMER_MIGRATING;
+			WRITE_ONCE(timer->flags, timer->flags | TIMER_MIGRATING);
 
 			raw_spin_unlock(&base->lock);
 			base = new_base;
