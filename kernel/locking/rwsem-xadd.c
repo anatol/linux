@@ -230,11 +230,12 @@ __rwsem_down_read_failed_common(struct rw_semaphore *sem, int state)
 	long count, adjustment = -RWSEM_ACTIVE_READ_BIAS;
 	struct rwsem_waiter waiter;
 	DEFINE_WAKE_Q(wake_q);
+	unsigned long flags;
 
 	waiter.task = current;
 	waiter.type = RWSEM_WAITING_FOR_READ;
 
-	raw_spin_lock_irq(&sem->wait_lock);
+	raw_spin_lock_irqsave(&sem->wait_lock, flags);
 	if (list_empty(&sem->wait_list)) {
 		/*
 		 * In case the wait queue is empty and the lock isn't owned
@@ -243,7 +244,7 @@ __rwsem_down_read_failed_common(struct rw_semaphore *sem, int state)
 		 * been set in the count.
 		 */
 		if (atomic_long_read(&sem->count) >= 0) {
-			raw_spin_unlock_irq(&sem->wait_lock);
+			raw_spin_unlock_irqrestore(&sem->wait_lock, flags);
 			return sem;
 		}
 		adjustment += RWSEM_WAITING_BIAS;
@@ -264,7 +265,7 @@ __rwsem_down_read_failed_common(struct rw_semaphore *sem, int state)
 	     adjustment != -RWSEM_ACTIVE_READ_BIAS))
 		__rwsem_mark_wake(sem, RWSEM_WAKE_ANY, &wake_q);
 
-	raw_spin_unlock_irq(&sem->wait_lock);
+	raw_spin_unlock_irqrestore(&sem->wait_lock, flags);
 	wake_up_q(&wake_q);
 
 	ktsan_mtx_post_lock(sem, false, false, false);
