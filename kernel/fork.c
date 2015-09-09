@@ -891,6 +891,10 @@ static struct task_struct *dup_task_struct(struct task_struct *orig, int node)
 	clear_tsk_need_resched(tsk);
 	set_task_stack_end_magic(tsk);
 
+#ifdef CONFIG_KTSAN
+	tsk->ktsan.thr = NULL;
+#endif
+
 #ifdef CONFIG_STACKPROTECTOR
 	tsk->stack_canary = get_random_canary();
 #endif
@@ -1768,10 +1772,6 @@ static __latent_entropy struct task_struct *copy_process(
 	 * Clear TID on mm_release()?
 	 */
 	p->clear_child_tid = (clone_flags & CLONE_CHILD_CLEARTID) ? child_tidptr : NULL;
-
-#ifdef CONFIG_KTSAN
-	p->ktsan.thr = NULL;
-#endif
 
 	ftrace_graph_init_task(p);
 
