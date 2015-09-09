@@ -4395,6 +4395,8 @@ __alloc_pages_nodemask(gfp_t gfp_mask, unsigned int order, int preferred_nid,
 	 */
 	if (unlikely(ac.nodemask != nodemask))
 		ac.nodemask = nodemask;
+	if (page)
+		ktsan_alloc_page(page, order, gfp_mask, -1);
 
 	page = __alloc_pages_slowpath(alloc_mask, order, &ac);
 
