@@ -129,6 +129,9 @@ void ktsan_alloc_page(struct page *page, unsigned int order,
 void ktsan_free_page(struct page *page, unsigned int order);
 void ktsan_split_page(struct page *page, unsigned int order);
 
+void ktsan_syscall_enter(void);
+void ktsan_syscall_exit(void);
+
 #else /* CONFIG_KTSAN */
 
 /* When disabled ktsan is no-op. */
@@ -185,6 +188,9 @@ static inline void ktsan_alloc_page(struct page *page, unsigned int order,
 		     gfp_t flags, int node) {}
 static inline void ktsan_free_page(struct page *page, unsigned int order) {}
 static inline void ktsan_split_page(struct page *page, unsigned int order) {}
+
+static inline void ktsan_syscall_enter(void) {}
+static inline void ktsan_syscall_exit(void) {}
 
 #endif /* CONFIG_KTSAN */
 
