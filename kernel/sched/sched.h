@@ -1154,7 +1154,9 @@ rq_unlock(struct rq *rq, struct rq_flags *rf)
 	__releases(rq->lock)
 {
 	rq_unpin_lock(rq, rf);
+	ktsan_mtx_pre_unlock(&rq->lock, true);
 	raw_spin_unlock(&rq->lock);
+	ktsan_mtx_post_unlock(&rq->lock, true);
 }
 
 static inline struct rq *
