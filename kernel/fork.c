@@ -892,7 +892,7 @@ static struct task_struct *dup_task_struct(struct task_struct *orig, int node)
 	set_task_stack_end_magic(tsk);
 
 #ifdef CONFIG_KTSAN
-	tsk->ktsan.thr = NULL;
+	tsk->ktsan.task = NULL;
 #endif
 
 #ifdef CONFIG_STACKPROTECTOR
@@ -2178,7 +2178,7 @@ struct task_struct *fork_idle(int cpu)
 	task = copy_process(CLONE_VM, 0, 0, NULL, &init_struct_pid, 0, 0,
 			    cpu_to_node(cpu));
 	if (!IS_ERR(task)) {
-		ktsan_thr_create(&task->ktsan, task->pid);
+		ktsan_task_create(&task->ktsan, task->pid);
 		init_idle_pids(task);
 		init_idle(task, cpu);
 	}
@@ -2230,7 +2230,7 @@ long _do_fork(unsigned long clone_flags,
 	if (IS_ERR(p))
 		return PTR_ERR(p);
 
-	ktsan_thr_create(&p->ktsan, p->pid);
+	ktsan_task_create(&p->ktsan, p->pid);
 
 	/*
 	 * Do this prior waking up the new thread - the thread pointer

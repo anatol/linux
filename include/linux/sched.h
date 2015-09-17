@@ -1184,6 +1184,8 @@ struct task_struct {
 	unsigned long			task_state_change;
 #endif
 	int				pagefault_disabled;
+	/* KTSAN per-task state. Empty in non-KTSAN build. */
+	struct ktsan_task_s ktsan;
 #ifdef CONFIG_MMU
 	struct task_struct		*oom_reaper_list;
 #endif

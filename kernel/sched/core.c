@@ -2710,20 +2710,19 @@ static struct rq *finish_task_switch(struct task_struct *prev)
 		 */
 		kprobe_flush_task(prev);
 
-		/* To store stats in a per cpu struct set thr->cpu
-		   with ktsan_thr_start and revert with ktsan_thr_stop. */
-		ktsan_thr_start();
-
 		/* Synchronize to the previous thread since it might
-		  have accessed prev struct, see comment in __schedule. */
+		   have accessed prev struct, see comment in __schedule.
+		   Since ktsan_sync_acquire is ignored when called from
+		   scheduler, use fake start/stop to prevent this. */
+		ktsan_task_start();
 		ktsan_sync_acquire(prev);
+		ktsan_task_stop();
 
+		ktsan_task_destroy(&prev->ktsan);
 		/* Task is done with its stack. */
 		put_task_stack(prev);
 
 		put_task_struct(prev);
-		ktsan_thr_destroy(&prev->ktsan);
-		ktsan_thr_stop();
 	}
 
 	tick_nohz_task_switch();
@@ -2792,8 +2791,8 @@ asmlinkage __visible void schedule_tail(struct task_struct *prev)
 
 	/* Must be before put_user call because the latter can cause
 	   page fault, which might enter scheduler, which results in
-	   two consequent ktsan_thr_start calls. */
-	ktsan_thr_start();
+	   two consequent ktsan_task_start calls. */
+	ktsan_task_start();
 
 	if (current->set_child_tid)
 		put_user(task_pid_vnr(current), current->set_child_tid);
@@ -3411,7 +3410,7 @@ static void __sched notrace __schedule(bool preempt)
 	   but the synchronization that come from scheduler is not seen by
 	   ktsan, so we manually synchronize the next and prev threads. */
 	ktsan_sync_release(prev);
-	ktsan_thr_stop();
+	ktsan_task_stop();
 
 	schedule_debug(prev);
 
@@ -3498,7 +3497,7 @@ static void __sched notrace __schedule(bool preempt)
 	}
 
 	balance_callback(rq);
-	ktsan_thr_start();
+	ktsan_task_start();
 }
 
 void __noreturn do_task_dead(void)
