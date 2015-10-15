@@ -194,7 +194,7 @@ static __always_inline bool arch_atomic_add_negative(int i, atomic_t *v)
 #ifndef CONFIG_KTSAN
 	return GEN_BINARY_RMWcc(LOCK_PREFIX "addl", v->counter, s, "er", i);
 #else
-	return (ktsan_atomic32_fetch_add((void *)v, i,
+	return ((int)ktsan_atomic32_fetch_add((void *)v, i,
 			ktsan_memory_order_acq_rel) + i) < 0;
 #endif
 }
