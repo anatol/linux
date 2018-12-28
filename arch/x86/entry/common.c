@@ -26,6 +26,7 @@
 #include <linux/livepatch.h>
 #include <linux/syscalls.h>
 #include <linux/uaccess.h>
+#include <linux/ktsan.h>
 
 #include <asm/desc.h>
 #include <asm/traps.h>
@@ -287,6 +288,7 @@ __visible void do_syscall_64(unsigned long nr, struct pt_regs *regs)
 
 	if (likely(nr < NR_syscalls)) {
 		nr = array_index_nospec(nr, NR_syscalls);
+		ktsan_syscall_enter();
 		regs->ax = sys_call_table[nr](regs);
 #ifdef CONFIG_X86_X32_ABI
 	} else if (likely((nr & __X32_SYSCALL_BIT) &&
@@ -295,6 +297,7 @@ __visible void do_syscall_64(unsigned long nr, struct pt_regs *regs)
 					X32_NR_syscalls);
 		regs->ax = x32_sys_call_table[nr](regs);
 #endif
+		ktsan_syscall_exit();
 	}
 
 	syscall_return_slowpath(regs);

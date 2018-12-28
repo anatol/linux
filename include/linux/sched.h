@@ -31,6 +31,7 @@
 #include <linux/task_io_accounting.h>
 #include <linux/posix-timers.h>
 #include <linux/rseq.h>
+#include <linux/ktsan.h>
 
 /* task_struct member predeclarations (sorted alphabetically): */
 struct audit_context;
@@ -1258,6 +1259,9 @@ struct task_struct {
 #ifdef CONFIG_SECURITY
 	/* Used by LSM modules for access restriction: */
 	void				*security;
+
+	/* KTSAN per-task state. Empty in non-KTSAN build. */
+	struct ktsan_task_s ktsan;
 #endif
 
 #ifdef CONFIG_GCC_PLUGIN_STACKLEAK

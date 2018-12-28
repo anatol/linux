@@ -441,10 +441,12 @@ int dma_resv_get_fences_rcu(struct dma_resv *obj,
 				nshared = krealloc(shared, sz, GFP_KERNEL);
 				if (nshared) {
 					shared = nshared;
+					read_seqcount_cancel(&obj->seq);
 					continue;
 				}
 
 				ret = -ENOMEM;
+				read_seqcount_cancel(&obj->seq);
 				break;
 			}
 			shared = nshared;
